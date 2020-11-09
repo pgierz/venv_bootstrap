@@ -62,7 +62,7 @@ def _install_tools(venv_context, config):
     for tool in esm_tools_modules:
         print(80*"=")
         print("\n\n")
-        url = f"git+https://github.com/esm-tools/{tool}"
+        url = f"https://github.com/esm-tools/{tool}"
         user_wants_editable = config["general"].get(f"install_{tool}_editable", False)
         user_wants_branch = config["general"].get(f"install_{tool}_branch")
         if user_wants_editable:
