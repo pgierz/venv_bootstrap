@@ -13,6 +13,7 @@ def get_base_prefix_compat():
 
 
 def in_virtualenv():
+    import pdb; pdb.set_trace()
     return get_base_prefix_compat() != sys.prefix
 
 class _EnvBuilder(venv.EnvBuilder):
@@ -48,14 +49,11 @@ def _source_and_run_bin_in_venv(venv_context, command, shell):
 def _install_tools(venv_context, config):
     #_run_bin_in_venv(venv_context, ['pip', 'install', 'git+https://github.com/esm-tools/esm_tools'])
     esm_tools_modules = [
-        "esm_archiving",
-        "esm_autotests",
         "esm_calendar",
         "esm_database",
         "esm_environment",
         "esm_master",
         "esm_parser",
-        "esm_profile",
         "esm_rcfile",
         "esm_runscripts",
         "esm_tools",
@@ -63,6 +61,8 @@ def _install_tools(venv_context, config):
         "esm_version_checker",
     ]
     for tool in esm_tools_modules:
+        print(80*"=")
+        print("\n\n")
         url = f"git+https://github.com/esm-tools/{tool}"
         user_wants_editable = config["general"].get(f"install_{tool}_editable", False)
         user_wants_branch = config["general"].get(f"install_{tool}_branch")
@@ -74,12 +74,25 @@ def _install_tools(venv_context, config):
                 branch_command = f" -b {user_wants_branch} "
             else:
                 branch_command = ""
-            subprocess.check_call("git clone {branch_command} {url} {src_dir}")
-            _run_bin_in_venv(venv_context, ["pip", "install", src_dir])
+            subprocess.check_call(f"git clone {branch_command} {url} {src_dir}")
+            _run_bin_in_venv(venv_context, ["pip", "install", "-e", src_dir])
         else:
             if user_wants_branch:
-                url += "@{user_wants_branch}"
-            _run_bin_in_venv(venv_context, ["pip", "install", url]
+                url += f"@{user_wants_branch}"
+            _run_bin_in_venv(venv_context, ["pip", "install", "-U", url])
+    print(80*"=")
+
+
+def _install_required_plugins(venv_context, config):
+    required_plugins = ["git@https://github.com/pgierz/venv_bootstrap.git"]
+    for sub_cfg in config.items():
+        if isinstance(sub_cfg, dict):
+            if "required_plugins" in sub_cfg:
+                required_plugins += sub_cfg["required_plugins"]
+    for required_plugin in required_plugins:
+        _run_bin_in_venv(venv_context, ["pip", "install", required_plugin])
+
+
 
 
 def venv_bootstrap(config):
@@ -92,9 +105,12 @@ def venv_bootstrap(config):
         venv_context = _venv_create(venv_path)
         _run_python_in_venv(venv_context, ['-m', 'pip', 'install', '-U', 'pip'])
         _install_tools(venv_context, config)
-        sys.exit(1)
+        _install_required_plugins(venv_context, config)
+        sys.argv[0] = pathlib.Path(sys.argv[0]).name
         _source_and_run_bin_in_venv(venv_context, " ".join(sys.argv), shell=True)
+        print("Exit from venv_bootstrap --> Was not in virtualenv")
+        sys.exit(0)
+    return config
 
 if __name__ == '__main__':
     venv_bootstrap({})
-    print(f"exit from bootstrapper --> in_virtualenv: {in_virtualenv()}")
