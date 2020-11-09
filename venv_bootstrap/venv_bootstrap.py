@@ -1,26 +1,19 @@
 # -*- coding: utf-8 -*-
 """Main module."""
 
-import copy
-import os
 import pathlib
 import subprocess
 import sys
 import venv
 
-import esm_tools
 
 def get_base_prefix_compat():
     """Get base/real prefix, or sys.prefix if there is none."""
     return getattr(sys, "base_prefix", None) or getattr(sys, "real_prefix", None) or sys.prefix
 
+
 def in_virtualenv():
     return get_base_prefix_compat() != sys.prefix
-
-
-
-
-
 
 class _EnvBuilder(venv.EnvBuilder):
 
@@ -49,7 +42,7 @@ def _run_bin_in_venv(venv_context, command):
 def _main():
     venv_path = pathlib.Path.cwd().joinpath('.venv')
     venv_context = _venv_create(venv_path)
-    #_run_python_in_venv(venv_context, ['-m', 'pip', 'install', '-U', 'pip'])
+    _run_python_in_venv(venv_context, ['-m', 'pip', 'install', '-U', 'pip'])
     #_run_bin_in_venv(venv_context, ["activate"])
     _run_bin_in_venv(venv_context, ['pip', 'install', 'git+https://github.com/esm-tools/esm_tools'])
 
@@ -58,8 +51,8 @@ def _main():
 def venv_bootstrap(config):
     """Bootstraps your run into a virtual environment"""
     print(f"Running in venv: {in_virtualenv()}")
-    for key, value in globals().items():
-        print(f"{key}: {value}")
+    subprocess.check_call("which esm_versions", shell=True)
+    subprocess.check_call("esm_versions check", shell=True)
     if not in_virtualenv():
         _main()
         command = " ".join(["source", ".venv/bin/activate &&", "python"] + sys.argv)
@@ -68,4 +61,4 @@ def venv_bootstrap(config):
 
 if __name__ == '__main__':
     venv_bootstrap({})
-    print("exit from bootstrapper")
+    print(f"exit from bootstrapper --> in_virtualenv: {in_virtualenv()}")
