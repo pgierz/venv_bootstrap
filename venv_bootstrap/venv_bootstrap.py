@@ -13,7 +13,6 @@ def get_base_prefix_compat():
 
 
 def in_virtualenv():
-    import pdb; pdb.set_trace()
     return get_base_prefix_compat() != sys.prefix
 
 class _EnvBuilder(venv.EnvBuilder):
@@ -84,7 +83,7 @@ def _install_tools(venv_context, config):
 
 
 def _install_required_plugins(venv_context, config):
-    required_plugins = ["git@https://github.com/pgierz/venv_bootstrap.git"]
+    required_plugins = ["git+https://github.com/pgierz/venv_bootstrap"]
     for sub_cfg in config.items():
         if isinstance(sub_cfg, dict):
             if "required_plugins" in sub_cfg:
