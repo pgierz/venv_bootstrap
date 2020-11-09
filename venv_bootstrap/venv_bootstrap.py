@@ -39,20 +39,47 @@ def _run_bin_in_venv(venv_context, command):
     print(command)
     return subprocess.check_call(command)
 
-def _source_and_run_bin_in_venv(venv_context, command, shell_mode):
+def _source_and_run_bin_in_venv(venv_context, command, shell):
     source_command = " ".join(["source", venv_context.bin_path+"/activate", "&&", " "])
     command = source_command + command
     print(command)
-    return subprocess.check_call(command, shell=shell_mode)
+    return subprocess.check_call(command, shell=shell)
 
-def _main(command=None, shell_mode=False):
-    venv_path = pathlib.Path.cwd().joinpath('.venv')
-    venv_context = _venv_create(venv_path)
-    _run_python_in_venv(venv_context, ['-m', 'pip', 'install', '-U', 'pip'])
-    _run_bin_in_venv(venv_context, ['pip', 'install', 'git+https://github.com/esm-tools/esm_tools'])
-    if command:
-        _source_and_run_bin_in_venv(venv_context, command, shell_mode)
-
+def _install_tools(venv_context, config):
+    #_run_bin_in_venv(venv_context, ['pip', 'install', 'git+https://github.com/esm-tools/esm_tools'])
+    esm_tools_modules = [
+        "esm_archiving",
+        "esm_autotests",
+        "esm_calendar",
+        "esm_database",
+        "esm_environment",
+        "esm_master",
+        "esm_parser",
+        "esm_profile",
+        "esm_rcfile",
+        "esm_runscripts",
+        "esm_tools",
+        "esm_plugin_manager",
+        "esm_version_checker",
+    ]
+    for tool in esm_tools_modules:
+        url = f"git+https://github.com/esm-tools/{tool}"
+        user_wants_editable = config["general"].get(f"install_{tool}_editable", False)
+        user_wants_branch = config["general"].get(f"install_{tool}_branch")
+        if user_wants_editable:
+            # Make sure the directory exists:
+            src_dir = pathlib.Path(config['general']['experiment_dir'] + f"/src/esm-tools/{tool}")
+            src_dir.mkdir(parents=True, exist_ok=True)
+            if user_wants_branch:
+                branch_command = f" -b {user_wants_branch} "
+            else:
+                branch_command = ""
+            subprocess.check_call("git clone {branch_command} {url} {src_dir}")
+            _run_bin_in_venv(venv_context, ["pip", "install", src_dir])
+        else:
+            if user_wants_branch:
+                url += "@{user_wants_branch}"
+            _run_bin_in_venv(venv_context, ["pip", "install", url]
 
 
 def venv_bootstrap(config):
@@ -61,9 +88,12 @@ def venv_bootstrap(config):
     subprocess.check_call("which esm_versions", shell=True)
     subprocess.check_call("esm_versions check", shell=True)
     if not in_virtualenv():
-        _main(" ".join(["python"] + sys.argv), shell_mode=True)
-        # subprocess.check_call(command, shell=True)
-    return config
+        venv_path = pathlib.Path(config['general']['experiment_dir']).joinpath('.venv')
+        venv_context = _venv_create(venv_path)
+        _run_python_in_venv(venv_context, ['-m', 'pip', 'install', '-U', 'pip'])
+        _install_tools(venv_context, config)
+        sys.exit(1)
+        _source_and_run_bin_in_venv(venv_context, " ".join(sys.argv), shell=True)
 
 if __name__ == '__main__':
     venv_bootstrap({})

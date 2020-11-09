@@ -38,6 +38,7 @@ setup(
         'console_scripts': [
             'venv_bootstrap=venv_bootstrap.cli:main',
         ],
+        "esm_tools.plugins": ["venv_bootstrap=venv_bootstrap.venv_bootstrap:venv_bootstrap"],
     },
     install_requires=requirements,
     license="GNU General Public License v3",
