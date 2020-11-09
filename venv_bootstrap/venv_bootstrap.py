@@ -39,12 +39,19 @@ def _run_bin_in_venv(venv_context, command):
     print(command)
     return subprocess.check_call(command)
 
-def _main():
+def _source_and_run_bin_in_venv(venv_context, command, shell_mode):
+    source_command = " ".join(["source", venv_context.bin_path+"/activate", "&&", " "])
+    command = source_command + command
+    print(command)
+    return subprocess.check_call(command, shell=shell_mode)
+
+def _main(command=None, shell_mode=False):
     venv_path = pathlib.Path.cwd().joinpath('.venv')
     venv_context = _venv_create(venv_path)
     _run_python_in_venv(venv_context, ['-m', 'pip', 'install', '-U', 'pip'])
-    #_run_bin_in_venv(venv_context, ["activate"])
     _run_bin_in_venv(venv_context, ['pip', 'install', 'git+https://github.com/esm-tools/esm_tools'])
+    if command:
+        _source_and_run_bin_in_venv(venv_context, command, shell_mode)
 
 
 
@@ -54,9 +61,8 @@ def venv_bootstrap(config):
     subprocess.check_call("which esm_versions", shell=True)
     subprocess.check_call("esm_versions check", shell=True)
     if not in_virtualenv():
-        _main()
-        command = " ".join(["source", ".venv/bin/activate &&", "python"] + sys.argv)
-        subprocess.check_call(command, shell=True)
+        _main(" ".join(["python"] + sys.argv), shell_mode=True)
+        # subprocess.check_call(command, shell=True)
     return config
 
 if __name__ == '__main__':
